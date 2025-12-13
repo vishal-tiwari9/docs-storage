@@ -1,10 +1,12 @@
 
+"use client";
+
 import type { Metadata } from "next";
 import "./globals.css";
 import dynamic from "next/dynamic";
 
 const ClientWrapper = dynamic(() => import("./ClientWrapper")
-   //  , { ssr: false }
+    , { ssr: false }
 );
 
 // ----------------------------
