@@ -6,6 +6,8 @@ import { useAccount } from "wagmi";
 
 import CapsuleABI from "@/abi/CapsuleRegistry.json";
 import { uploadFolderToIPFS } from "@/lib/ipfs";
+import type { Eip1193Provider } from "ethers";
+
 import { generateQRCodeDataURL, getCapsuleURL } from "@/lib/qrcode";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
@@ -16,6 +18,7 @@ export default function CreateCapsule() {
 
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const [landFiles, setLandFiles] = useState<File[]>([]);
   const [payFiles, setPayFiles] = useState<File[]>([]);
@@ -57,7 +60,14 @@ export default function CreateCapsule() {
       });
 
       /* -------------------- 2. Prepare Contract -------------------- */
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      if (!window.ethereum) {
+  setError("MetaMask not detected");
+  setLoading(false);
+  return;
+}
+
+const ethereumProvider = window.ethereum as Eip1193Provider;
+      const provider = new ethers.BrowserProvider(ethereumProvider);
       const signer = await provider.getSigner();
 
       const contract = new ethers.Contract(

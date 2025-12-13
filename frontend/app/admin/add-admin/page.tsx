@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { ethers } from "ethers";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -14,8 +14,19 @@ const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
 const CONTRACT_ABI = Array.isArray(CONTRACT_ABI_JSON)
   ? CONTRACT_ABI_JSON
   : CONTRACT_ABI_JSON.abi || CONTRACT_ABI_JSON;
-
+ 
+  function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+export const dynamic = "force-dynamic";
 export default function AddAdminPage() {
+   const mounted = useMounted();
+
+  if (!mounted) {
+    return null; // or loader
+  }
   const router = useRouter();
   const { address, isConnected } = useAccount();
 
@@ -28,6 +39,7 @@ export default function AddAdminPage() {
     setError(null);
     setSuccess(false);
 
+    // ✅ Check if Ethereum provider exists
     if (!window.ethereum) {
       setError("MetaMask not detected");
       return;
@@ -56,13 +68,11 @@ export default function AddAdminPage() {
     setLoading(true);
 
     try {
-      // Always create a fresh provider
+      // ✅ Create provider & signer safely
       const provider = new ethers.BrowserProvider(window.ethereum);
-
-      // Get signer
       const signer = await provider.getSigner();
 
-      // Ensure signer address matches wallet
+      // Check wallet address
       const signerAddress = await signer.getAddress();
       if (signerAddress.toLowerCase() !== address.toLowerCase()) {
         setError("Wallet mismatch. Reconnect wallet.");
@@ -70,23 +80,18 @@ export default function AddAdminPage() {
         return;
       }
 
-      // Connect contract
+      // Connect to contract
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      // ↑ Critical fix: Amoy hates EIP-1559 → use legacy gas
+      // Estimate gas + 20% buffer
       const gasEstimate = await contract.addAdmin.estimateGas(newAdminAddress);
-
-      // Apply 20% buffer
       const gasLimit = gasEstimate + gasEstimate / 5n;
 
-      const txOptions = {
+      // Send transaction
+      const tx = await contract.addAdmin(newAdminAddress, {
         gasLimit,
-        // Minimum safe gas price on Amoy
-        gasPrice: ethers.parseUnits("30", "gwei"), // stable + accepted everywhere
-      };
-
-      // Send TX
-      const tx = await contract.addAdmin(newAdminAddress, txOptions);
+        gasPrice: ethers.parseUnits("30", "gwei"),
+      });
 
       await tx.wait();
 
@@ -95,9 +100,7 @@ export default function AddAdminPage() {
 
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err: any) {
-      console.error("FULL ERROR:", err);
-
-      // Decode real revert reason if possible
+      console.error("Transaction error:", err);
       const reason =
         err?.reason ||
         err?.shortMessage ||

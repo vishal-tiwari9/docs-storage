@@ -6,6 +6,8 @@ import { ethers } from "ethers";
 import CONTRACT_ABI_JSON from "@/abi/CapsuleRegistry.json";
 import { ContractRead } from "@/lib/contract";
 import { updateCapsuleInIPFS, fetchMetadataFromIPFS } from "@/lib/ipfs";
+import type { Eip1193Provider } from "ethers";
+
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
 const CONTRACT_ABI = Array.isArray(CONTRACT_ABI_JSON)
@@ -105,9 +107,15 @@ export default function UpdateCapsuleForm() {
         newLandFiles,
         newPaymentFiles
       );
+if (!window.ethereum) {
+  setError("MetaMask not detected");
+  setLoading(false);
+  return;
+}
 
+     const ethereumProvider = window.ethereum as Eip1193Provider;
       // STEP 3: setup provider
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(ethereumProvider);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
@@ -123,12 +131,15 @@ export default function UpdateCapsuleForm() {
       }
 
       // STEP 5: LEGACY GAS (Amoy required)
-      let gasPrice: bigint;
-      try {
-        gasPrice = await provider.getGasPrice();
-      } catch {
-        gasPrice = ethers.parseUnits("50", "gwei");
-      }
+    /* Ethers v6 Gas Price Fix */
+let gasPrice: bigint;
+try {
+  const feeData = await provider.getFeeData();
+  gasPrice = feeData.gasPrice ?? ethers.parseUnits("50", "gwei");
+} catch {
+  gasPrice = ethers.parseUnits("50", "gwei");
+}
+
 
       // STEP 6: send txn
       const tx = await contract.updateCapsule(id, newCid, {

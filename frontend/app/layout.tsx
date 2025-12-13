@@ -1,29 +1,29 @@
+
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientWrapper from "./ClientWrapper";
+import dynamic from "next/dynamic";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const ClientWrapper = dynamic(() => import("./ClientWrapper")
+   //  , { ssr: false }
+);
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
+// ----------------------------
+// 1️⃣ Metadata
+// ----------------------------
+ const metadata: Metadata = {
   title: "Docs-Storage Platform",
   description: "Docs Storage Platform",
 };
 
+// ----------------------------
+// 2️⃣ Root Layout
+// ----------------------------
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-<html>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en">
+      <body className="antialiased">
         <ClientWrapper>{children}</ClientWrapper>
       </body>
-   </html>
+    </html>
   );
 }

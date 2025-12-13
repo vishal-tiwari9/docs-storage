@@ -64,7 +64,7 @@ function extractFileInfoRecursive(input: any): { path?: string; cid?: string; ur
  * @param metadata - capsule metadata
  * @param stripFirstFolder - remove first folder from path? (used for paymentProof)
  */
-export function getPublicIpfsUrlFromInfo(
+ function getPublicIpfsUrlFromInfo(
   fileRef: any,
   parentCid: string,
   metadata: CapsuleMetadata,
@@ -278,18 +278,25 @@ export default function CapsulePage() {
             <h2 className="text-2xl font-semibold mb-4 text-cyan-400">Land Allotment Letters</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {capsule.metadata.landAllotmentFiles.map((fileRef, idx) => {
-                // Resolve final public URL
-                const fileUrl = resolveFileUrl(fileRef, capsule.metadata) || "";
+            {capsule.metadata.landAllotmentFiles.map((fileRef, idx) => {
+  // Resolve final public URL
+  const fileUrl = resolveFileUrl(fileRef, capsule.metadata) || "";
 
-                // Extract filename safely
-                let rawPath = "";
-                if (typeof fileRef === "string") rawPath = fileRef;
-                else if (typeof fileRef.path === "string") rawPath = fileRef.path;
-                else if (fileRef.path && typeof fileRef.path.path === "string") rawPath = fileRef.path.path;
-                rawPath = rawPath || "";
+  // Extract filename safely
+  let rawPath = "";
 
-                const fileName = (String(rawPath).split("/").pop() || `Document-${idx + 1}`);
+  if (typeof fileRef === "string") {
+    rawPath = fileRef;
+  } else if (fileRef && typeof (fileRef as any).path === "string") {
+    // TypeScript can't know the type, so cast to 'any' here
+    rawPath = (fileRef as any).path;
+  } else if (fileRef && (fileRef as any).path && typeof (fileRef as any).path.path === "string") {
+    rawPath = (fileRef as any).path.path;
+  }
+
+  rawPath = rawPath || "";
+
+  const fileName = String(rawPath).split("/").pop() || `Document-${idx + 1}`;
 
                 return (
                   <div

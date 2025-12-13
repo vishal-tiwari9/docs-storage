@@ -1,33 +1,32 @@
 "use client";
 
-import '@rainbow-me/rainbowkit/styles.css';
-import { WagmiConfig, createConfig, http } from 'wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import "@rainbow-me/rainbowkit/styles.css";
+import { WagmiConfig, configureChains, createConfig } from "wagmi";
+import { mainnet, sepolia, polygon } from "wagmi/chains";
+import { publicProvider } from "wagmi/providers/public";
+import {
+  RainbowKitProvider,
+  getDefaultWallets,
+} from "@rainbow-me/rainbowkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from "react";
+import type { ReactNode } from "react";
 
-import { sepolia, mainnet, polygonAmoy } from 'wagmi/chains';
+const { chains, publicClient } = configureChains(
+  [polygon, sepolia, mainnet],
+  [publicProvider()]
+);
 
-const amoyRpc =
-  process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC ??
-  "https://polygon-amoy.g.alchemy.com/v2/-zPXKPdSmOnk7TfFnJpb8";
-
-const chains = [polygonAmoy, sepolia, mainnet];
-
-// ✔ Correct for your installed RainbowKit version
 const { connectors } = getDefaultWallets({
   appName: "Sehsaa",
-  projectId: "23bb964aee763512743dd835ce616ad1",
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID!,
   chains,
 });
 
 const config = createConfig({
-  chains,
+  autoConnect: true,
   connectors,
-  transports: {
-    [polygonAmoy.id]: http(amoyRpc),
-    [sepolia.id]: http(),
-    [mainnet.id]: http(),
-  },
+  publicClient,
 });
 
 const queryClient = new QueryClient();
@@ -36,9 +35,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiConfig config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider initialChain={polygonAmoy}>
-          {children}
-        </RainbowKitProvider>
+        <RainbowKitProvider chains={chains}>{children}</RainbowKitProvider>
       </QueryClientProvider>
     </WagmiConfig>
   );
