@@ -1,45 +1,46 @@
 "use client";
 
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-
 import CONTRACT_ABI_JSON from "@/abi/CapsuleRegistry.json";
+
+export const dynamic = "force-dynamic";
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
 const CONTRACT_ABI = Array.isArray(CONTRACT_ABI_JSON)
   ? CONTRACT_ABI_JSON
-  : CONTRACT_ABI_JSON.abi || CONTRACT_ABI_JSON;
- 
-  function useMounted() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  return mounted;
-}
-export const dynamic = "force-dynamic";
-export default function AddAdminPage() {
-   const mounted = useMounted();
+  : CONTRACT_ABI_JSON.abi ?? CONTRACT_ABI_JSON;
 
-  if (!mounted) {
-    return null; // or loader
-  }
+export default function AddAdminPage() {
+  /* -------------------- ALL HOOKS FIRST -------------------- */
   const router = useRouter();
   const { address, isConnected } = useAccount();
 
+  const [mounted, setMounted] = useState(false);
   const [newAdminAddress, setNewAdminAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  /* -------------------- SAFE EARLY RETURN -------------------- */
+  if (!mounted) {
+    return null; // prevents hydration mismatch
+  }
+
+  /* -------------------- ACTION -------------------- */
   async function handleAddAdmin() {
     setError(null);
     setSuccess(false);
 
-    // ✅ Check if Ethereum provider exists
     if (!window.ethereum) {
       setError("MetaMask not detected");
       return;
@@ -50,47 +51,39 @@ export default function AddAdminPage() {
       return;
     }
 
-    if (!newAdminAddress.trim()) {
-      setError("Please enter an address");
-      return;
-    }
-
     if (!ethers.isAddress(newAdminAddress)) {
       setError("Invalid Ethereum address");
       return;
     }
 
-    if (!CONTRACT_ADDRESS || CONTRACT_ADDRESS.length < 10) {
-      setError("Invalid contract address in env file");
+    if (!CONTRACT_ADDRESS) {
+      setError("Contract address missing");
       return;
     }
 
     setLoading(true);
 
     try {
-      // ✅ Create provider & signer safely
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      // Check wallet address
       const signerAddress = await signer.getAddress();
       if (signerAddress.toLowerCase() !== address.toLowerCase()) {
-        setError("Wallet mismatch. Reconnect wallet.");
-        setLoading(false);
-        return;
+        throw new Error("Wallet mismatch. Reconnect wallet.");
       }
 
-      // Connect to contract
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        CONTRACT_ABI,
+        signer
+      );
 
-      // Estimate gas + 20% buffer
-      const gasEstimate = await contract.addAdmin.estimateGas(newAdminAddress);
-      const gasLimit = gasEstimate + gasEstimate / 5n;
+      const gasEstimate = await contract.addAdmin.estimateGas(
+        newAdminAddress
+      );
 
-      // Send transaction
       const tx = await contract.addAdmin(newAdminAddress, {
-        gasLimit,
-        gasPrice: ethers.parseUnits("30", "gwei"),
+        gasLimit: gasEstimate + gasEstimate / 5n,
       });
 
       await tx.wait();
@@ -100,45 +93,59 @@ export default function AddAdminPage() {
 
       setTimeout(() => router.push("/admin"), 1500);
     } catch (err: any) {
-      console.error("Transaction error:", err);
-      const reason =
-        err?.reason ||
-        err?.shortMessage ||
-        err?.info?.error?.message ||
-        err?.data ||
-        err?.message ||
-        "Transaction failed";
+      console.error(err);
 
-      setError(reason);
+      setError(
+        err?.reason ||
+          err?.shortMessage ||
+          err?.message ||
+          "Transaction failed"
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  /* -------------------- UI -------------------- */
   return (
     <div className="min-h-screen bg-[#06080d] text-white">
       <Header />
 
       <main className="max-w-2xl mx-auto px-4 py-12">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-white mb-4">
+        <button
+          onClick={() => router.back()}
+          className="text-gray-400 hover:text-white mb-4"
+        >
           ← Back
         </button>
 
         <h1 className="text-4xl font-bold mb-4">Add New Admin</h1>
 
         <div className="bg-black/40 p-6 rounded-xl border border-gray-800">
-          <label className="block text-sm mb-2">New Admin Address *</label>
+          <label className="block text-sm mb-2">
+            New Admin Address *
+          </label>
+
           <input
             type="text"
             placeholder="0x..."
             value={newAdminAddress}
             onChange={(e) => setNewAdminAddress(e.target.value)}
             disabled={loading}
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white"
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg"
           />
 
-          {error && <div className="mt-3 p-3 bg-red-900/30 border border-red-600 rounded">{error}</div>}
-          {success && <div className="mt-3 p-3 bg-green-900/30 border border-green-600 rounded">Admin added successfully!</div>}
+          {error && (
+            <div className="mt-3 p-3 bg-red-900/30 border border-red-600 rounded">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mt-3 p-3 bg-green-900/30 border border-green-600 rounded">
+              Admin added successfully!
+            </div>
+          )}
 
           <button
             onClick={handleAddAdmin}
@@ -148,7 +155,11 @@ export default function AddAdminPage() {
             {loading ? "Processing..." : "Add Admin"}
           </button>
 
-          {!isConnected && <p className="text-yellow-400 text-center mt-3">Connect wallet first</p>}
+          {!isConnected && (
+            <p className="text-yellow-400 text-center mt-3">
+              Connect wallet first
+            </p>
+          )}
         </div>
       </main>
 

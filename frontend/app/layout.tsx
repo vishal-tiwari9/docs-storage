@@ -22,7 +22,7 @@ const ClientWrapper = dynamic(() => import("./ClientWrapper")
 // ----------------------------
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <ClientWrapper>{children}</ClientWrapper>
       </body>

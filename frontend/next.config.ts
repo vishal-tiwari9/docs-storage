@@ -2,17 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: [
-      "ethers",
-      "@wagmi/core",
-      "@rainbow-me/rainbowkit",
-      "viem",
-    ],
-  },
+
+  // 🔴 FIX 1: move out of experimental
+  serverExternalPackages: [
+    "ethers",
+    "@wagmi/core",
+    "@rainbow-me/rainbowkit",
+    "viem",
+  ],
+
+  // 🔴 FIX 2: keep webpack config
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Fallback Node modules to prevent client-side build errors
       config.resolve.fallback = {
         fs: false,
         os: false,
@@ -21,7 +22,6 @@ const nextConfig: NextConfig = {
         stream: false,
       };
     }
-
     return config;
   },
 };
