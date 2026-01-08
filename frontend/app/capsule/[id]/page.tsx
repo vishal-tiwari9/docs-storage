@@ -169,7 +169,7 @@ export default function CapsulePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#06080d] via-[#0b0c10] to-[#050608] text-white">
+      <div className="min-h-screen bg-white text-black">
         <Header />
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
@@ -227,193 +227,183 @@ export default function CapsulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#06080d] via-[#0b0c10] to-[#050608] text-white">
-      <Header />
-      <main className="max-w-6xl mx-auto px-4 py-12">
-        {/* Header info */}
-        <div className="bg-black/40 backdrop-blur-md rounded-xl p-6 mb-6 border border-gray-800">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 text-transparent bg-clip-text">
-                {capsule.metadata.title || `Capsule #${capsule.id}`}
-              </h1>
-              {capsule.metadata.description && <p className="text-gray-300 mt-3 text-lg">{capsule.metadata.description}</p>}
-              <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-400">
-                <span>Created: {new Date(capsule.metadata.createdAt).toLocaleDateString()}</span>
-                <span>Updated: {new Date(capsule.metadata.updatedAt).toLocaleDateString()}</span>
-                <span>CID: {capsule.cid.substring(0, 20)}...</span>
+  <div className="min-h-screen bg-[#f0f2f5] text-gray-800 flex flex-col">
+    <Header />
+
+    <main className="w-full px-8 py-8">
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* LEFT PANEL */}
+        <div className="lg:col-span-4">
+          <div className="bg-white rounded-md shadow-sm p-4 h-full">
+
+            {/* QR BOX */}
+            {qrCodeUrl && (
+              <div className="border border-dashed border-gray-300 rounded-md p-4 text-center mb-4">
+                <img src={qrCodeUrl} alt="QR" className="w-24 h-24 mx-auto" />
+                <div className="mt-2 text-sm font-semibold text-brandNavy">
+                  Verified Record
+                </div>
+              </div>
+            )}
+
+            {/* TITLE */}
+            <h2 className="text-lg font-semibold text-gray-900">
+              {capsule.metadata.title || `Capsule #${capsule.id}`}
+            </h2>
+
+            <div className="text-sm text-gray-500 mb-4">
+              ID: #{capsule.id}
+            </div>
+
+            {/* META */}
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="uppercase text-[11px] text-gray-500 font-semibold">
+                  Zone / Description
+                </div>
+                <div className="text-gray-900">
+                  {capsule.metadata.description || "-"}
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <div>
+                  <div className="uppercase text-[11px] text-gray-500 font-semibold">
+                    Created Date
+                  </div>
+                  <div>
+                    {new Date(capsule.metadata.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="uppercase text-[11px] text-gray-500 font-semibold">
+                    Status
+                  </div>
+                  <span className="inline-block px-2 py-1 text-xs border border-green-600 text-green-600 bg-green-50 rounded">
+                    Active
+                  </span>
+                </div>
               </div>
             </div>
 
-            {qrCodeUrl && (
-              <div className="flex flex-col items-center">
-                <div className="bg-white p-2 rounded-lg mb-2">
-                  <img src={qrCodeUrl} alt="QR Code" className="w-32 h-32" />
-                </div>
-                <button
-                  onClick={() => downloadQRCode(getCapsuleURL(capsule.id), `capsule-${capsule.id}-qrcode.png`)}
-                  className="text-xs text-cyan-400 hover:text-cyan-300"
+            {/* VERIFY */}
+            {/* <div className="mt-5 pt-4 border-t">
+              <a
+                href={`https://polygonscan.com`}
+                target="_blank"
+                className="block w-full text-center text-sm border border-blue-600 text-blue-600 py-2 rounded hover:bg-blue-50"
+              >
+                Verify on PolygonScan
+              </a>
+            </div> */}
+
+            {/* ADMIN */}
+            {isAdmin && (
+              <div className="mt-3">
+                <a
+                  href={`/admin/update-capsule/${capsule.id}`}
+                  className="block w-full text-center text-sm bg-brandNavy text-white py-2 rounded hover:bg-[#002244]"
                 >
-                  Download QR
-                </button>
+                  Update Capsule
+                </a>
               </div>
             )}
           </div>
-
-          {isAdmin && (
-            <div className="mt-4 pt-4 border-t border-gray-700">
-              <a
-                href={`/admin/update-capsule/${capsule.id}`}
-                className="inline-block px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm"
-              >
-                Update Capsule (Add Files)
-              </a>
-            </div>
-          )}
         </div>
 
-        {/* Land Allotment Letters */}
-        {Array.isArray(capsule.metadata.landAllotmentFiles) && capsule.metadata.landAllotmentFiles.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4 text-cyan-400">Land Allotment Letters</h2>
+        {/* RIGHT PANEL */}
+        <div className="lg:col-span-8">
+          <div className="bg-white rounded-md shadow-sm">
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {capsule.metadata.landAllotmentFiles.map((fileRef, idx) => {
-  // Resolve final public URL
-  const fileUrl = resolveFileUrl(fileRef, capsule.metadata) || "";
+            <div className="border-b px-4 py-3">
+              <h3 className="font-semibold text-brandNavy text-sm">
+                Attached Documents
+              </h3>
+            </div>
 
-  // Extract filename safely
-  let rawPath = "";
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 text-gray-600 uppercase text-[11px]">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Document Name</th>
+                    <th className="px-4 py-3">Type</th>
+                    <th className="px-4 py-3">Source</th>
+                    <th className="px-4 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
 
-  if (typeof fileRef === "string") {
-    rawPath = fileRef;
-  } else if (fileRef && typeof (fileRef as any).path === "string") {
-    // TypeScript can't know the type, so cast to 'any' here
-    rawPath = (fileRef as any).path;
-  } else if (fileRef && (fileRef as any).path && typeof (fileRef as any).path.path === "string") {
-    rawPath = (fileRef as any).path.path;
-  }
+                <tbody>
+                  {[...(capsule.metadata.landAllotmentFiles || []),
+                    ...(capsule.metadata.paymentProofFiles || [])].map(
+                    (fileRef, idx) => {
+                      const info = extractFileInfoRecursive(fileRef);
+                      const name =
+                        info.path?.split("/").pop() ||
+                        info.url?.split("/").pop() ||
+                        info.cid ||
+                        `Document ${idx + 1}`;
 
-  rawPath = rawPath || "";
+                      const url =
+                        getPublicIpfsUrlFromInfo(
+                          fileRef,
+                          capsule.cid,
+                          capsule.metadata
+                        ) || "#";
 
-  const fileName = String(rawPath).split("/").pop() || `Document-${idx + 1}`;
+                      const isPDF = isPdfFile(String(name));
+                      const isIMG = isImageFile(String(name));
 
-                return (
-                  <div
-                    key={idx}
-                    className="bg-black/40 backdrop-blur-md rounded-lg p-4 border border-gray-800 hover:border-cyan-500 transition"
-                  >
-                    {isImageFile(fileName) ? (
-                      <>
-                        <img
-                          src={fileUrl}
-                          alt={fileName}
-                          className="w-full h-48 object-cover rounded mb-2"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                        <a
-                          href={fileUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 hover:text-cyan-300 text-sm block truncate"
-                        >
-                          {fileName}
-                        </a>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-full h-48 bg-gray-800 rounded mb-2 flex items-center justify-center">
-                          {isPdfFile(fileName) ? <p className="text-xs text-gray-400">PDF</p> : <p className="text-xs text-gray-400">Document</p>}
-                        </div>
+                      return (
+                        <tr key={idx} className="border-t hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            {name}
+                          </td>
 
-                        <a
-                          href={fileUrl || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-cyan-400 hover:text-cyan-300 text-sm block truncate"
-                        >
-                          {fileName}
-                        </a>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-1 text-xs border rounded ${
+                                isPDF
+                                  ? "bg-red-50 text-red-600 border-red-200"
+                                  : isIMG
+                                  ? "bg-green-50 text-green-600 border-green-200"
+                                  : "bg-blue-50 text-blue-600 border-blue-200"
+                              }`}
+                            >
+                              {isPDF ? "PDF" : isIMG ? "IMG" : "DOC"}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-3 text-gray-500">
+                            IPFS
+                          </td>
+
+                          <td className="px-4 py-3 text-right">
+                            <a
+                              href={url}
+                              target="_blank"
+                              className="inline-flex items-center justify-center px-2 py-1 border text-blue-600 rounded hover:bg-blue-50"
+                            >
+                              ⬇
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Payment Proofs */}
-        {Array.isArray(capsule.metadata.paymentProofFiles) && capsule.metadata.paymentProofFiles.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4 text-green-400">Payment Proofs</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {capsule.metadata.paymentProofFiles.map((fileRef, idx) => {
-                const info = extractFileInfoRecursive(fileRef);
-                const fileUrlRaw = getPublicIpfsUrlFromInfo(fileRef, capsule.cid, capsule.metadata, false) || "";
+      </div>
+    </main>
 
-                // ⭐ NEW FEATURE: Remove `/payment-proof/` folder but keep filename intact.
-                // Safe replace only if fileUrlRaw is non-empty
-                const cleanedUrl = fileUrlRaw ? fileUrlRaw.replace("/payment-proof/", "/") : "";
+    <Footer />
+  </div>
+);
 
-                const fileName =
-                  (info.path && info.path.split("/").pop()) ||
-                  info.url?.split("/").pop() ||
-                  info.cid ||
-                  `Document ${idx + 1}`;
-
-                return (
-                  <div key={idx} className="bg-black/40 backdrop-blur-md rounded-lg p-4 border border-gray-800 hover:border-green-500 transition">
-                    {isImageFile(String(fileName)) ? (
-                      <>
-                        <img
-                          src={cleanedUrl || fileUrlRaw || "#"}
-                          alt={String(fileName)}
-                          className="w-full h-48 object-cover rounded mb-2"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                        <a
-                          href={cleanedUrl || fileUrlRaw || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-400 hover:text-green-300 text-sm block truncate"
-                        >
-                          {fileName}
-                        </a>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-full h-48 bg-gray-800 rounded mb-2 flex items-center justify-center">
-                          {isPdfFile(String(fileName)) ? <p className="text-xs text-gray-400">PDF</p> : <p className="text-xs text-gray-400">Document</p>}
-                        </div>
-                        <a
-                          href={cleanedUrl || fileUrlRaw || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-400 hover:text-green-300 text-sm block truncate"
-                        >
-                          {fileName}
-                        </a>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {(!capsule.metadata.landAllotmentFiles?.length && !capsule.metadata.paymentProofFiles?.length) && (
-          <div className="text-center py-12 text-gray-400">
-            <p>No documents in this capsule.</p>
-          </div>
-        )}
-      </main>
-      <Footer />
-    </div>
-  );
 }

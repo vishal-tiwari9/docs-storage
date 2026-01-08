@@ -178,7 +178,7 @@ try {
   // UI
   // ---------------------
   return (
-    <div className="border p-5 rounded-xl bg-black/40 backdrop-blur-md border-gray-800">
+    <div className="border p-5 rounded-xl bg-white text-black backdrop-blur-md ">
       <h3 className="text-xl font-semibold mb-4 text-yellow-400">
         Update Existing Capsule
       </h3>
@@ -189,7 +189,7 @@ try {
             <label className="block text-sm font-medium mb-1">Capsule ID *</label>
             <input
               type="number"
-              className="border p-2 w-full rounded bg-gray-900 border-gray-700 text-white"
+              className="border p-2 w-full rounded bg-gray-900 border-gray-700 text-black"
               value={capsuleId}
               onChange={(e) => setCapsuleId(e.target.value)}
               disabled={loading}
@@ -198,7 +198,7 @@ try {
         )}
 
         {capsuleTitle && (
-          <div className="p-3 bg-green-900/30 border border-green-600 rounded-lg">
+          <div className="p-3 bg-green-900 border border-green-600 rounded-lg">
             <p className="text-sm text-green-300 font-medium">{capsuleTitle}</p>
           </div>
         )}

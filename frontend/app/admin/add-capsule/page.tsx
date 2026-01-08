@@ -53,7 +53,7 @@ export default function AddCapsulePage() {
   // Render form only when admin
   return (
     <div className="p-6">
-      <h1 className="text-xl font-semibold mb-4">Add New Capsule</h1>
+      <h1 className="text-xl font-semibold mb-4">Add New Record</h1>
       <CapsuleForm />
     </div>
   );

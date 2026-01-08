@@ -5,11 +5,11 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function Header() {
   return (
-    <header className="w-full border-b bg-black/80 backdrop-blur-md sticky top-0 z-50 text-white">
+    <header className="w-full border-b bg-[#003366] backdrop-blur-md sticky top-0 z-50 text-white">
       <div className="max-w-6xl mx-auto flex items-center justify-between py-4 px-4">
         {/* Logo */}
         <Link href="/">
-          <span className="text-2xl font-semibold">Docs Storage </span>
+          <img src="/logo.png" alt="Maharashtra Industrial Development Corporation" />
         </Link>
 
         

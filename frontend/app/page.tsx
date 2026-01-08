@@ -1,40 +1,39 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ethers } from "ethers";
 import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { ethers } from "ethers";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import CapsuleTable from "@/components/CapsuleTable";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 import { ContractRead } from "@/lib/contract";
-import CONTRACT_ABI_JSON from "@/abi/CapsuleRegistry.json";
-
-
-
-
-
-
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS!;
-const CONTRACT_ABI = Array.isArray(CONTRACT_ABI_JSON)
-  ? CONTRACT_ABI_JSON
-  : CONTRACT_ABI_JSON.abi || CONTRACT_ABI_JSON;
-
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+
   const [capsules, setCapsules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [showConnectPopup, setShowConnectPopup] = useState(false);
 
-  // Check if user is admin and redirect
+  /* ------------------ ADMIN CHECK ------------------ */
   useEffect(() => {
     async function checkAdmin() {
       if (!isConnected || !address) {
         setCheckingAdmin(false);
+        setShowConnectPopup(true);
         return;
       }
 
@@ -43,8 +42,8 @@ export default function HomePage() {
         if (isAdmin) {
           router.push("/admin");
         }
-      } catch (e) {
-        console.error("Error checking admin:", e);
+      } catch (err) {
+        console.error("Admin check failed:", err);
       } finally {
         setCheckingAdmin(false);
       }
@@ -53,19 +52,17 @@ export default function HomePage() {
     checkAdmin();
   }, [isConnected, address, router]);
 
+  /* ------------------ LOAD CAPSULES ------------------ */
   async function loadCapsules() {
     try {
       setLoading(true);
+
       const provider = new ethers.JsonRpcProvider(
-        process.env.NEXT_PUBLIC_RPC_URL || process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC
+        process.env.NEXT_PUBLIC_RPC_URL ||
+          process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC
       );
 
-      const contract = new ethers.Contract(
-        CONTRACT_ADDRESS,
-        CONTRACT_ABI,
-        provider
-      );
-
+      const contract = ContractRead.connect(provider);
       const nextId = await contract.nextId();
       const total = Number(nextId);
 
@@ -74,114 +71,86 @@ export default function HomePage() {
       for (let id = 0; id < total; id++) {
         const capsule = await contract.capsules(id);
         const cid = capsule.cid;
-// 
-        let meta ={ title:`Capsule id ${id}`, description: " " };
-        try {
-          const url = `https://ipfs.io/ipfs/${cid}/metadata.json`;
-          const res = await fetch(url);
-          if (res.ok) {
-            meta = await res.json();
-          }
-        } catch (e) {
-          console.error(`Failed to load metadata for capsule ${id}:`, e);
-        }
 
-        list.push({
-          id,
-          cid,
-          meta,
-        });
+        let meta = {
+          title: `Capsule #${id}`,
+          description: "",
+        };
+
+        try {
+          const res = await fetch(
+            `https://ipfs.io/ipfs/${cid}/metadata.json`
+          );
+          if (res.ok) meta = await res.json();
+        } catch {}
+
+        list.push({ id, cid, meta });
       }
 
       setCapsules(list);
     } catch (err) {
-      console.error("Error loading capsules:", err);
+      console.error("Failed loading capsules:", err);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!checkingAdmin) {
+    if (!checkingAdmin && isConnected) {
       loadCapsules();
     }
-  }, [checkingAdmin]);
+  }, [checkingAdmin, isConnected]);
 
+  /* ------------------ LOADING SCREEN ------------------ */
   if (checkingAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#06080d] via-[#0b0c10] to-[#050608] text-white flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p>Checking access...</p>
+          <div className="animate-spin h-12 w-12 border-b-2 border-cyan-400 rounded-full mx-auto mb-4" />
+          <p className="text-gray-500">Checking access...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#06080d] via-[#0b0c10] to-[#050608] text-white">
+    <div className="min-h-screen bg-white text-black">
       <Header />
 
-    <main className="max-w-7xl mx-auto px-4 py-12">
-  <div className="mb-8">
-    <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 text-transparent bg-clip-text">
-      Document Storage Platform
-    </h1>
-    <p className="text-gray-400">
-      View all land allocation documents and payment proofs
-    </p>
-  </div>
+      {/* ------------------ CONNECT WALLET POPUP ------------------ */}
+     
+      {/* ------------------ MAIN DASHBOARD ------------------ */}
+      <main className="max-w-7xl mx-auto px-4 py-12">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400 text-transparent bg-clip-text">
+            Dashboard
+          </h1>
+          <p className="text-gray-400">
+            Overview of Land Records
+          </p>
+        </div>
 
-  {loading ? (
-    <div className="flex items-center justify-center py-32">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-        <p className="text-gray-400 text-lg">Loading capsules...</p>
-      </div>
-    </div>
-  ) : capsules.length === 0 ? (
-    <div className="text-center py-32">
-      <p className="text-gray-400 text-lg">No capsules found</p>
-    </div>
-  ) : (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-      {capsules.map((c) => (
-        <motion.div
-          key={c.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          onClick={() => router.push(`/capsule/${c.id}`)}
-          className="bg-black/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800 hover:border-cyan-500 hover:shadow-xl hover:shadow-cyan-500/20 transition cursor-pointer"
-        >
-          {/* TITLE */}
-         <h3 className="text-xl font-semibold mb-2 text-cyan-400">
-                  {c.meta?.title}
-                </h3>
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                  {c.meta?.description}
-                </p>
-
-          {/* INFO ROW */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
-            <span className="text-xs text-gray-500">
-              Capsule ID: {c.id}
-            </span>
-
-            <span className="text-cyan-400 text-sm font-medium flex items-center gap-1">
-              View
-              <span className="text-lg">→</span>
-            </span>
+        {loading ? (
+          <div className="flex justify-center py-32">
+            <div className="text-center">
+              <div className="animate-spin h-14 w-14 border-b-2 border-cyan-400 rounded-full mx-auto mb-4" />
+              <p className="text-gray-400 text-lg">
+                Loading Records...
+              </p>
+            </div>
           </div>
-        </motion.div>
-      ))}
-    </div>
-  )}
-</main>
+        ) : capsules.length === 0 ? (
+          <div className="text-center py-32">
+            <p className="text-gray-400 text-lg">
+              No records found
+            </p>
+          </div>
+        ) : (
+          <CapsuleTable capsules={capsules} />
+        )}
+      </main>
 
-
-    
+      <Footer />
     </div>
   );
 }
-
