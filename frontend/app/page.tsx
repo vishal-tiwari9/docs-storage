@@ -15,9 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { fetchMetadataFromIPFS } from "@/lib/ipfs";
 
 import { ContractRead } from "@/lib/contract";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import {CONTRACT_ADDRESS, ABI} from "@/lib/contract";
 
 export default function HomePage() {
   const { address, isConnected } = useAccount();
@@ -52,53 +54,77 @@ export default function HomePage() {
     checkAdmin();
   }, [isConnected, address, router]);
 
-  /* ------------------ LOAD CAPSULES ------------------ */
-  async function loadCapsules() {
-    try {
-      setLoading(true);
-
-      const provider = new ethers.JsonRpcProvider(
-        process.env.NEXT_PUBLIC_RPC_URL ||
-          process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC
-      );
-
-      const contract = ContractRead.connect(provider);
-      const nextId = await contract.nextId();
-      const total = Number(nextId);
-
-      const list = [];
-
-      for (let id = 0; id < total; id++) {
-        const capsule = await contract.capsules(id);
-        const cid = capsule.cid;
-
-        let meta = {
-          title: `Capsule #${id}`,
-          description: "",
-        };
-
-        try {
-          const res = await fetch(
-            `https://ipfs.io/ipfs/${cid}/metadata.json`
-          );
-          if (res.ok) meta = await res.json();
-        } catch {}
-
-        list.push({ id, cid, meta });
-      }
-
-      setCapsules(list);
-    } catch (err) {
-      console.error("Failed loading capsules:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  
+/* ------------------ LOAD CAPSULES  ------------------ */
+ async function loadCapsules() {
+   try {
+     setLoading(true);
+ 
+     const provider = new ethers.JsonRpcProvider(
+       process.env.NEXT_PUBLIC_RPC_URL ||
+         process.env.NEXT_PUBLIC_POLYGON_AMOY_RPC
+     );
+ 
+     const contract = new ethers.Contract(
+       CONTRACT_ADDRESS,
+       ABI,
+       provider
+     );
+ 
+     const nextId = await contract.nextId();
+     const total = Number(nextId);
+ 
+     const list = await Promise.all(
+       Array.from({ length: total }).map(async (_, id) => {
+         try {
+           const capsule = await contract.capsules(id);
+           const cid = capsule.cid;
+ 
+           const metadata = await fetchMetadataFromIPFS(cid);
+ 
+           return {
+             id,
+             cid,
+             meta: {
+               title: metadata.title || `Record #${id}`,
+               description: metadata.description || "-",
+             },
+             landAllotmentFiles: metadata.landAllotmentFiles || [],
+             paymentProofFiles: metadata.paymentProofFiles || [],
+             createdAt: metadata.createdAt,
+           };
+         } catch (err) {
+           console.error("Failed loading capsule", id, err);
+ 
+           return {
+             id,
+             cid: "",
+             meta: {
+               title: `Record #${id}`,
+               description: "View Record to get description",
+             },
+             landAllotmentFiles: 1,
+             paymentProofFiles: 1,
+             createdAt: Date.now(),
+           };
+         }
+       })
+     );
+ 
+     setCapsules(list);
+   } catch (err) {
+     console.error(err);
+   } finally {
+     setLoading(false);
+   }
+ }
+ 
+ 
 
   useEffect(() => {
-    if (!checkingAdmin && isConnected) {
+    
       loadCapsules();
-    }
+    
   }, [checkingAdmin, isConnected]);
 
   /* ------------------ LOADING SCREEN ------------------ */
@@ -117,7 +143,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-white text-black">
       <Header />
 
-      {/* ------------------ CONNECT WALLET POPUP ------------------ */}
+      
      
       {/* ------------------ MAIN DASHBOARD ------------------ */}
       <main className="max-w-7xl mx-auto px-4 py-12">
